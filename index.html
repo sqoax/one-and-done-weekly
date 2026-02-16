@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>O&D — The League</title>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-deep: #050505;
+    --bg-card: #0e0e0e;
+    --gold: #c5a059;
+    --gold-dim: rgba(197, 160, 89, 0.25);
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-border-hover: rgba(255, 255, 255, 0.12);
+    --text-primary: #f2f2f2;
+    --text-secondary: #888888;
+    --text-muted: #555555;
+    --green: #4ade80;
+    --green-dim: rgba(74, 222, 128, 0.15);
+    --yellow: #f5c542;
+    --yellow-dim: rgba(245, 197, 66, 0.15);
+    --red: #f87171;
+    --red-dim: rgba(248, 113, 113, 0.15);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 0%, rgba(197, 160, 89, 0.03) 0%, transparent 70%),
+      radial-gradient(circle at 20% 80%, rgba(197, 160, 89, 0.015) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 24px 16px 80px;
+  }
+
+  /* ── Header ──────────────────────────────── */
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+    animation: fadeDown 0.6s ease-out;
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--gold);
+    border: 1.5px solid var(--gold-dim);
+    border-radius: 6px;
+    padding: 6px 14px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    background: rgba(197, 160, 89, 0.04);
+  }
+
+  .title {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ── Glass Card ──────────────────────────── */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    margin-bottom: 16px;
+    transition: border-color var(--transition);
+    animation: fadeUp 0.5s ease-out both;
+  }
+  .glass-card:hover { border-color: var(--glass-border-hover); }
+  .glass-card.delay-1 { animation-delay: 0.1s; }
+  .glass-card.delay-2 { animation-delay: 0.2s; }
+
+  /* ── Status Bar ──────────────────────────── */
+  .status-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.5s ease-out both;
+  }
+
+  .week-label {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .week-label span { color: var(--gold); }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 100px;
+  }
+  .status-pill.open { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(245,197,66,0.2); }
+  .status-pill.revealed { background: var(--green-dim); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+  .status-pill.locked { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  /* ── History Dropdown ────────────────────── */
+  .history-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.5s ease-out 0.05s both;
+  }
+
+  .history-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .history-select, .form-select, .form-input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: inherit;
+    transition: all var(--transition);
+  }
+
+  .history-select {
+    flex: 1;
+    font-size: 13px;
+    padding: 8px 32px 8px 12px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  .history-select:focus, .form-select:focus, .form-input:focus {
+    outline: none;
+    border-color: var(--gold-dim);
+    background: rgba(255,255,255,0.06);
+  }
+
+  /* ── Section Label ───────────────────────── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--glass-border);
+  }
+
+  /* ── Form ────────────────────────────────── */
+  .form-group { margin-bottom: 16px; }
+
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  .form-select, .form-input {
+    font-size: 15px;
+    padding: 12px 14px;
+  }
+
+  .form-select {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+  }
+
+  .form-input::placeholder { color: var(--text-muted); }
+
+  .btn-submit {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--gold), #b8903e);
+    color: #0a0a0a;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(197, 160, 89, 0.25);
+  }
+  .btn-submit:active { transform: translateY(0); }
+  .btn-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* ── Submitted Pills ─────────────────────── */
+  .pills-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--glass-border);
+    animation: popIn 0.3s ease-out both;
+  }
+  .pill .check { color: var(--green); font-size: 11px; }
+  .pill:nth-child(1) { animation-delay: 0s; }
+  .pill:nth-child(2) { animation-delay: .04s; }
+  .pill:nth-child(3) { animation-delay: .08s; }
+  .pill:nth-child(4) { animation-delay: .12s; }
+  .pill:nth-child(5) { animation-delay: .16s; }
+  .pill:nth-child(6) { animation-delay: .2s; }
+  .pill:nth-child(7) { animation-delay: .24s; }
+  .pill:nth-child(8) { animation-delay: .28s; }
+  .pill:nth-child(9) { animation-delay: .32s; }
+  .pill:nth-child(10) { animation-delay: .36s; }
+
+  .empty-state {
+    text-align: center;
+    padding: 20px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-style: italic;
+  }
+
+  /* ── Picks Table ─────────────────────────── */
+  .picks-table { width: 100%; border-collapse: collapse; }
+
+  .picks-table thead th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 0 12px 0;
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  .picks-table tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    animation: fadeUp 0.35s ease-out both;
+  }
+  .picks-table tbody tr:nth-child(1) { animation-delay: .05s; }
+  .picks-table tbody tr:nth-child(2) { animation-delay: .1s; }
+  .picks-table tbody tr:nth-child(3) { animation-delay: .15s; }
+  .picks-table tbody tr:nth-child(4) { animation-delay: .2s; }
+  .picks-table tbody tr:nth-child(5) { animation-delay: .25s; }
+  .picks-table tbody tr:nth-child(6) { animation-delay: .3s; }
+  .picks-table tbody tr:nth-child(7) { animation-delay: .35s; }
+  .picks-table tbody tr:nth-child(8) { animation-delay: .4s; }
+  .picks-table tbody tr:nth-child(9) { animation-delay: .45s; }
+  .picks-table tbody tr:nth-child(10) { animation-delay: .5s; }
+  .picks-table tbody tr:last-child { border-bottom: none; }
+
+  .picks-table td { padding: 14px 0; font-size: 14px; }
+  .picks-table .col-member { font-weight: 600; }
+  .picks-table .col-pick { color: var(--gold); font-weight: 500; }
+  .picks-table .col-time { color: var(--text-muted); font-size: 12px; text-align: right; white-space: nowrap; }
+
+  /* ── Sheets Link ─────────────────────────── */
+  .sheets-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: all var(--transition);
+    margin-top: 8px;
+    animation: fadeUp 0.5s ease-out 0.3s both;
+  }
+  .sheets-link:hover {
+    border-color: var(--gold-dim);
+    color: var(--gold);
+    background: rgba(197, 160, 89, 0.04);
+  }
+  .sheets-link svg { width: 14px; height: 14px; opacity: 0.6; }
+
+  /* ── Admin Panel ─────────────────────────── */
+  .admin-panel {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.03);
+    opacity: 0.12;
+    transition: opacity 0.5s ease;
+    animation: fadeUp 0.5s ease-out 0.4s both;
+  }
+  .admin-panel:hover { opacity: 1; }
+
+  .admin-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  .admin-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .btn-admin {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 14px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    background: rgba(255,255,255,0.02);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .btn-admin:hover { border-color: var(--glass-border-hover); color: var(--text-primary); background: rgba(255,255,255,0.05); }
+  .btn-admin.active { border-color: var(--gold-dim); color: var(--gold); }
+
+  /* ── Toast ───────────────────────────────── */
+  .toast-container {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .toast {
+    padding: 12px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid;
+    animation: toastIn 0.35s ease-out;
+    pointer-events: auto;
+    white-space: nowrap;
+    max-width: 90vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .toast.success { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.25); color: var(--green); }
+  .toast.error { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.25); color: var(--red); }
+  .toast.info { background: rgba(197,160,89,0.12); border-color: rgba(197,160,89,0.25); color: var(--gold); }
+  .toast.exiting { animation: toastOut 0.3s ease-in forwards; }
+
+  /* ── Animations ──────────────────────────── */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes popIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(16px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes toastOut { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-8px) scale(0.95); } }
+
+  /* ── Responsive ──────────────────────────── */
+  @media (max-width: 480px) {
+    .container { padding: 16px 12px 80px; }
+    .glass-card { padding: 22px 18px; }
+    .title { font-size: 26px; }
+    .picks-table .col-time { display: none; }
+    .admin-buttons { flex-direction: column; }
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">O&D</div>
+    <h1 class="title">The League</h1>
+    <p class="subtitle">Weekly Selection & Standings</p>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar" id="statusBar">
+    <div class="week-label" id="weekLabel">Loading…</div>
+    <div class="status-pill open" id="statusPill">
+      <span class="status-dot"></span>
+      <span id="statusText">Loading</span>
+    </div>
+  </div>
+
+  <!-- History Dropdown -->
+  <div class="history-row hidden" id="historyRow">
+    <span class="history-label">View Week</span>
+    <select class="history-select" id="historySelect"></select>
+  </div>
+
+  <!-- Submission Form -->
+  <div class="glass-card delay-1" id="formCard">
+    <div class="section-label">Make Your Pick</div>
+    <div class="form-group">
+      <label class="form-label" for="memberSelect">Your Name</label>
+      <select class="form-select" id="memberSelect">
+        <option value="" disabled selected>Select your name</option>
+        <option>Hiatt</option><option>Caden</option><option>Bennett</option>
+        <option>Ryan</option><option>William</option><option>Ian</option>
+        <option>Mason</option><option>Tim</option><option>Drew</option><option>Ben</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="golferInput">Golfer Selection</label>
+      <input class="form-input" id="golferInput" type="text" placeholder="e.g. Scottie Scheffler" autocomplete="off">
+    </div>
+    <button class="btn-submit" id="submitBtn" onclick="submitPick()">Lock It In</button>
+  </div>
+
+  <!-- Confirmed Entries (before reveal) -->
+  <div class="glass-card delay-2 hidden" id="submittedCard">
+    <div class="section-label">Confirmed Entries</div>
+    <div class="pills-wrap" id="submittedPills"></div>
+    <div class="empty-state hidden" id="emptySubmitted">No picks submitted yet</div>
+  </div>
+
+  <!-- Picks Table (after reveal) -->
+  <div class="glass-card delay-2 hidden" id="picksCard">
+    <div class="section-label">Selections Revealed</div>
+    <table class="picks-table">
+      <thead>
+        <tr>
+          <th>Member</th>
+          <th>Selection</th>
+          <th style="text-align:right">Submitted</th>
+        </tr>
+      </thead>
+      <tbody id="picksBody"></tbody>
+    </table>
+    <div class="empty-state hidden" id="emptyPicks">No picks for this week</div>
+  </div>
+
+  <!-- Google Sheets Link -->
+  <a class="sheets-link" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQs22oFFItCqxK4oSjw68DRmVXovuv6PgKm7koaGsjj1eLoDWPoYMGIRB7CdV7P3z6Na9Tdara8D-SD/pubhtml" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    Full Standings — Google Sheets
+  </a>
+
+  <!-- Admin Panel -->
+  <div class="admin-panel">
+    <div class="admin-label">Admin Controls</div>
+    <div class="admin-buttons">
+      <button class="btn-admin" id="authBtn" onclick="adminAuth()">Auth</button>
+      <button class="btn-admin" onclick="adminAction('reveal')">Force Reveal</button>
+      <button class="btn-admin" onclick="adminAction('advanceWeek')">Advance Week</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+const API = 'https://golf-pickem-weekly.hiattgafnea0.workers.dev';
+
+let state = {
+  currentWeek: null,
+  viewingWeek: null,
+  tournament: '',
+  locked: false,
+  revealed: false,
+  weeks: [],
+};
+
+// ── Toast ───────────────────────────────────────────────
+function showToast(message, type = 'info', duration = 3500) {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = message;
+  c.appendChild(t);
+  setTimeout(() => {
+    t.classList.add('exiting');
+    setTimeout(() => t.remove(), 300);
+  }, duration);
+}
+
+// ── API ─────────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(API + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+  return data;
+}
+
+// ── Data Loading ────────────────────────────────────────
+async function loadStatus() {
+  const d = await apiFetch('/status');
+  state.currentWeek = d.currentWeek;
+  state.tournament = d.tournament;
+  state.locked = d.locked;
+  state.revealed = d.revealed;
+  if (state.viewingWeek === null) state.viewingWeek = d.currentWeek;
+}
+
+async function loadWeeks() {
+  const d = await apiFetch('/weeks');
+  state.weeks = d.weeks || [];
+}
+
+async function loadPicks(weekNum) {
+  const adminKey = localStorage.getItem('golf_admin_key');
+  const headers = {};
+  if (adminKey) headers['X-Admin-Key'] = adminKey;
+  return await apiFetch('/picks?week=' + weekNum, { headers });
+}
+
+// ── Rendering ───────────────────────────────────────────
+function renderStatus(wd) {
+  document.getElementById('weekLabel').innerHTML =
+    'Week ' + wd.week + ' &mdash; <span>' + wd.tournament + '</span>';
+
+  const pill = document.getElementById('statusPill');
+  const text = document.getElementById('statusText');
+
+  if (wd.revealed) {
+    pill.className = 'status-pill revealed';
+    text.textContent = 'Picks revealed';
+  } else if (wd.locked) {
+    pill.className = 'status-pill locked';
+    text.textContent = 'Locked \u2014 awaiting reveal';
+  } else {
+    pill.className = 'status-pill open';
+    text.textContent = 'Picks open \xb7 reveal Wed 9 PM ET';
+  }
+}
+
+function renderHistory() {
+  const row = document.getElementById('historyRow');
+  const sel = document.getElementById('historySelect');
+
+  if (state.weeks.length <= 1) { row.classList.add('hidden'); return; }
+
+  row.classList.remove('hidden');
+  sel.innerHTML = '';
+
+  state.weeks.slice().reverse().forEach(w => {
+    const o = document.createElement('option');
+    o.value = w.week;
+    o.textContent = 'Week ' + w.week + ' \u2014 ' + w.tournament;
+    if (w.status === 'active') o.textContent += '  (current)';
+    if (w.week === state.viewingWeek) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+function renderSubmitted(submitted) {
+  const card = document.getElementById('submittedCard');
+  const wrap = document.getElementById('submittedPills');
+  const empty = document.getElementById('emptySubmitted');
+
+  card.classList.remove('hidden');
+
+  if (!submitted || submitted.length === 0) {
+    wrap.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  wrap.innerHTML = submitted.sort().map(n =>
+    '<span class="pill"><span class="check">\u2713</span>' + n + '</span>'
+  ).join('');
+}
+
+function renderPicks(picks) {
+  const card = document.getElementById('picksCard');
+  const body = document.getElementById('picksBody');
+  const empty = document.getElementById('emptyPicks');
+
+  card.classList.remove('hidden');
+
+  const entries = Object.entries(picks || {});
+  if (entries.length === 0) { body.innerHTML = ''; empty.classList.remove('hidden'); return; }
+
+  empty.classList.add('hidden');
+  entries.sort((a, b) => a[0].localeCompare(b[0]));
+
+  body.innerHTML = entries.map(([name, d]) => {
+    const ts = formatTs(d.ts);
+    return '<tr><td class="col-member">' + name +
+      '</td><td class="col-pick">' + d.pick +
+      '</td><td class="col-time">' + ts + '</td></tr>';
+  }).join('');
+}
+
+function formatTs(iso) {
+  if (!iso) return '\u2014';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' })
+      + ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
+  } catch { return '\u2014'; }
+}
+
+// ── View Orchestrator ───────────────────────────────────
+async function refreshView(weekNum) {
+  const formCard = document.getElementById('formCard');
+  const subCard = document.getElementById('submittedCard');
+  const picksCard = document.getElementById('picksCard');
+
+  formCard.classList.add('hidden');
+  subCard.classList.add('hidden');
+  picksCard.classList.add('hidden');
+
+  try {
+    const wd = await loadPicks(weekNum);
+    renderStatus(wd);
+
+    const isCurrent = weekNum === state.currentWeek;
+
+    if (wd.revealed || wd.picks) {
+      renderPicks(wd.picks);
+    } else {
+      renderSubmitted(wd.submitted);
+      if (isCurrent && !wd.locked) formCard.classList.remove('hidden');
+    }
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function init() {
+  try {
+    await loadStatus();
+    await loadWeeks();
+    renderHistory();
+    await refreshView(state.currentWeek);
+  } catch (err) {
+    showToast('Failed to load \u2014 check connection', 'error');
+    console.error(err);
+  }
+}
+
+// ── Events ──────────────────────────────────────────────
+document.getElementById('historySelect').addEventListener('change', async (e) => {
+  state.viewingWeek = parseInt(e.target.value, 10);
+  await refreshView(state.viewingWeek);
+});
+
+async function submitPick() {
+  const name = document.getElementById('memberSelect').value;
+  const golferPick = document.getElementById('golferInput').value.trim();
+  const btn = document.getElementById('submitBtn');
+
+  if (!name) { showToast('Select your name', 'error'); return; }
+  if (!golferPick) { showToast('Enter a golfer name', 'error'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting\u2026';
+
+  try {
+    const d = await apiFetch('/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, golferPick }),
+    });
+
+    showToast('Locked in: ' + d.pick, 'success');
+    document.getElementById('golferInput').value = '';
+
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { y: 0.7 },
+      colors: ['#c5a059', '#f5c542', '#ffffff', '#b8903e'],
+      disableForReducedMotion: true,
+    });
+
+    await refreshView(state.currentWeek);
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Lock It In';
+  }
+}
+
+document.getElementById('golferInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') submitPick();
+});
+
+// ── Admin ───────────────────────────────────────────────
+function adminAuth() {
+  const existing = localStorage.getItem('golf_admin_key');
+  const key = prompt('Enter admin key:', existing || '');
+  if (key !== null) {
+    localStorage.setItem('golf_admin_key', key);
+    showToast('Admin key saved', 'success');
+    document.getElementById('authBtn').classList.add('active');
+  }
+}
+
+if (localStorage.getItem('golf_admin_key')) {
+  document.getElementById('authBtn').classList.add('active');
+}
+
+async function adminAction(action) {
+  const adminKey = localStorage.getItem('golf_admin_key');
+  if (!adminKey) { showToast('Authenticate first', 'error'); return; }
+
+  const msg = action === 'advanceWeek'
+    ? 'Advance to next week? Current week will be revealed and locked.'
+    : 'Run "' + action + '" on current week?';
+  if (!confirm(msg)) return;
+
+  try {
+    const d = await apiFetch('/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
+      body: JSON.stringify({ action }),
+    });
+
+    if (action === 'advanceWeek') {
+      showToast('Advanced to Week ' + d.currentWeek + ' \u2014 ' + d.tournament, 'success');
+    } else if (action === 'reveal') {
+      showToast('Week ' + d.week + ' revealed', 'success');
+    }
+
+    state.viewingWeek = null;
+    await init();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ── Boot ────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
