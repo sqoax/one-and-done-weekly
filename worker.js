@@ -6,7 +6,7 @@
 
 const POOL_MEMBERS = ["Hiatt", "Caden", "Bennett", "Ryan", "William", "Ian", "Mason", "Tim", "Drew", "Ben"];
 const TOURNAMENTS = [
-  "Genesis", "Genesis", "Cognizant", "API", "Players", "Valspar", "Houston", "Valero",
+  "Genesis", "Genesis", "Genesis", "Cognizant", "API", "Players", "Valspar", "Houston", "Valero",
   "Masters", "Heritage", "Cadillac", "Truist", "PGA", "Byron Nelson", "Schwab",
   "Memorial", "Canadian", "US Open", "Travelers", "John Deere", "Scottish",
   "The Open", "3M", "Rocket", "Wyndham"
