@@ -215,7 +215,7 @@ body {
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: var(--radius-sm);
   color: var(--cream);
-  font-size: 14px;
+  font-size: 16px;
   padding: 10px 14px;
   appearance: none;
   -webkit-appearance: none;
@@ -237,7 +237,7 @@ body {
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: var(--radius-sm);
   color: var(--cream);
-  font-size: 15px;
+  font-size: 16px;
   padding: 12px 14px;
   margin-bottom: 12px;
   font-family: var(--font);
@@ -338,7 +338,7 @@ body {
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: var(--radius-sm);
   color: var(--cream);
-  font-size: 12px;
+  font-size: 16px;
   padding: 8px 12px;
   width: 160px;
   font-family: var(--font);
@@ -971,7 +971,7 @@ async function renderPicksTab(weekNum) {
       const tr = document.createElement('tr');
       tr.innerHTML = `<td style="font-weight:600;color:var(--cream)">${name}</td>
         <td>${pickData.pick || '—'}</td>
-        <td style="font-size:12px;color:var(--cream-muted)">${pickData.ts ? new Date(pickData.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:'America/New_York'}) : '—'}</td>`;
+        <td style="font-size:12px;color:var(--cream-muted)">${pickData.ts ? new Date(pickData.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '—'}</td>`;
       tbody.appendChild(tr);
     }
   } else {
@@ -1060,23 +1060,10 @@ async function submitPick() {
 function authAdmin() {
   adminKey = document.getElementById('admin-key').value;
   if (adminKey) {
-    localStorage.setItem('golf_admin_key', adminKey);
     document.getElementById('admin-pre-auth').classList.add('hidden');
     document.getElementById('admin-controls').classList.remove('hidden');
     showToast('Admin authenticated', 'info');
   }
-}
-
-// Restore admin UI if key already saved
-if (adminKey) {
-  document.addEventListener('DOMContentLoaded', () => {
-    const preAuth = document.getElementById('admin-pre-auth');
-    const controls = document.getElementById('admin-controls');
-    if (preAuth && controls) {
-      preAuth.classList.add('hidden');
-      controls.classList.remove('hidden');
-    }
-  });
 }
 
 async function adminAction(action) {
